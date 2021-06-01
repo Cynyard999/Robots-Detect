@@ -24,7 +24,6 @@ def iterateUserCursor(_cursor):
         if row["action"] != "login":
             continue
         if row["requestBody"]["userId"] != currentUserId:
-            print(currentUserId, currentUserRecord)
             currentUserId = row["requestBody"]["userId"]
             currentUserRecord = {"succeed_ip_list": [], "fail_ip_list": []}
             userRecords[currentUserId] = currentUserRecord
@@ -38,6 +37,8 @@ def iterateIpCursor(_cursor):
     currentIp = ''
     currentIpRecord = {}
     for row in _cursor:
+        if row["action"] != "login":
+            continue
         if row["ip"] != currentIp:
             currentIp = row["ip"]
             currentIpRecord = {"succeed_user_list": [], "fail_user_list": []}

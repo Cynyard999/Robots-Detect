@@ -22,7 +22,6 @@ def iterateCursor(_cursor):
         if row["requestBody"]["userId"] != currentUserId:
             # 保存当前用户的记录
             userRecords[currentUserId] = currentUserRecords
-            print(currentUserId, currentUserRecords)
             # refresh
             currentUserRecords = {"getDetail": 0, "cart": 0, "favor": 0, "login": 0, "buy": 0}
             currentUserId = row["requestBody"]["userId"]

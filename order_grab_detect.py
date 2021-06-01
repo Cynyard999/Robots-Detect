@@ -2,7 +2,6 @@ import datetime
 from bson.son import SON
 import pandas as pd
 
-
 pipeline = [
     {'$sort': SON([("requestBody.userId", 1), ("date", 1)])}
 ]
@@ -24,6 +23,8 @@ def iterateCursor(_cursor):
     currentUserId = ''
     currentBuyRecord = {}
     for row in _cursor:
+        if row["action"] != "buy":
+            continue
         if row["requestBody"]["userId"] != currentUserId:
             currentBuyRecord = {"integral_point_buy": 0, "not_integral_point_buy": 0}
             currentUserId = row["requestBody"]["userId"]
