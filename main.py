@@ -22,7 +22,7 @@ mongo_collection = mongo_db[MONGO_DB_COLLECTION]
 
 
 if __name__ == "__main__":
-    crawler_detect.start(mongo_collection)
+    # crawler_detect.start(mongo_collection)
     # click_farm_detect.start(mongo_collection)
     # order_grab_detect.start(mongo_collection)
-    # credential_stuff_detect.start(mongo_collection)
+    credential_stuff_detect.start(mongo_collection)

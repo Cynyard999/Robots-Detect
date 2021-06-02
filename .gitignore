@@ -2,7 +2,8 @@
 .idea
 .DS_Store
 data/*
-!data/readme.txt
+!data/temp/readme.txt
+!data/result/readme.txt
 
 
 __pycache__/

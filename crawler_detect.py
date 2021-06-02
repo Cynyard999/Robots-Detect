@@ -82,7 +82,8 @@ def get_suspicious_crawler(data):
     iqr = q3 - q1
     outlier = data[
         (data['max_get_detail_per_min'] > q3 + iqr * 3) | (data['max_get_detail_per_min'] < q1 - iqr * 3)]
-    outlier.to_csv('./data/suspicious_crawler.csv')
+    outlier.to_csv('./data/temp/suspicious_crawler.csv')
+    # TODO
     print("Done")
 
 
@@ -98,8 +99,8 @@ def start(mongo_collection):
     print("Converting Dic to DataFrame...")
     data = pd.DataFrame(user_get_detail_frequency).T
     print("Saving to Csv...")
-    data.to_csv('./data/user_get_detail_frequency.csv')
+    data.to_csv('./data/temp/user_get_detail_frequency.csv')
+    # 如果嫌调试太慢 可以直接读之前跑好的中间结果
     # data = pd.read_csv('./data/user_get_detail_frequency.csv', index_col=0)
     print("Getting Suspicious List")
     get_suspicious_crawler(data)
-    return data
