@@ -1,7 +1,8 @@
 # Byte-compiled / optimized / DLL files
 .idea
 .DS_Store
-data/*
+data/temp/*
+data/result/*
 !data/temp/readme.txt
 !data/result/readme.txt
 
