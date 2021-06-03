@@ -71,10 +71,9 @@ def siftUser(line, data2):
         # 始终只有一个ip在尝试登陆，并且只成功了一次：撞库成功
         if len(list(set(fail_ip_list))) == 1 and len(list(set(succeed_ip_list))) == 1 and fail_ip_list[0] == \
                 succeed_ip_list[0]:
-            ip_record_line = data2.loc[[fail_ip_list[0]]]
-            # values[0]是从series中取得值
-            succeed_ip_record = ip_record_line['succeed_user_list'].values[0]
-            fail_ip_record = ip_record_line['fail_user_list'].values[0]
+            ip_record_line = data2.loc[fail_ip_list[0]]
+            succeed_ip_record = ip_record_line['succeed_user_list']
+            fail_ip_record = ip_record_line['fail_user_list']
             # 并且这个ip成功登陆了三个及以上的user或者登陆失败了三个及以上的user
             if len(list(set(succeed_ip_record))) > 2 or len(list(set(fail_ip_record))) > 2:
                 return True

@@ -29,10 +29,29 @@ def iterateCursor(_cursor):
             currentUserRecords[row["action"]] += 1
 
 
+def siftRecord(line):
+    if line['buy'] >= 20 and line['cart'] + line['favor'] + line['getDetail'] < 3:
+        return True
+    return False
+
+
+def get_robot_list(data):
+    data = data.sort_values(by=['buy', 'cart'], ascending=[False, True])
+    result = data[data.apply(siftRecord, axis=1)]
+    result.to_csv('./data/result/click_farm_robots.csv')
+    print("Done")
+
+
 def start(mongo_collection):
+    print("Getting User-Record Cursor...")
     with mongo_collection.aggregate(pipeline, allowDiskUse=True
                                     ) as cursor:
+        print("Reading MongoDb...")
         iterateCursor(cursor)
+        print("Reading Succeed")
         cursor.close()
+    print("Converting Dic to DataFrame...")
     data = pd.DataFrame(userRecords).T
-    return data
+    print("Saving to Csv...")
+    data.to_csv('./data/temp/user_records.csv')
+    get_robot_list(data)

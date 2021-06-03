@@ -42,4 +42,5 @@ def start(mongo_collection):
         iterateCursor(cursor)
         cursor.close()
     data = pd.DataFrame(userRecords).T
-    return data
+    print("Saving to Csv...")
+    data.to_csv('./data/temp/user_buy_records.csv')
