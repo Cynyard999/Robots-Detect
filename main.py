@@ -28,5 +28,5 @@ if __name__ == "__main__":
     print("Beginning Credential_Stuff Detect")
     crawler_detect.start(mongo_collection)
     # 抢单机器人
-    # print("Beginning Order_Grab Detect")
-    # order_grab_detect.start(mongo_collection)
+    print("Beginning Order_Grab Detect")
+    order_grab_detect.start(mongo_collection)
