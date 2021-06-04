@@ -23,39 +23,40 @@ def isAroundIntegralPoint(time: str):
 def iterateCursor(_cursor):
     currentUserId = ''
     currentBuyRecord = {}
+    buy_count = 0
+    kill = 0
     for row in _cursor:
         # 只考虑buy行为
         if row["action"] != "buy":
             continue
         if row["requestBody"]["userId"] != currentUserId:
             if currentUserId != '':
-                # 计算整点抢购的成功率
-                kill = currentBuyRecord["kill"]
-                notkill = currentBuyRecord["notkill"]
-                success_rate = 0.0
-                if (kill + notkill) != 0:
-                    success_rate = round(kill / (kill + notkill), 2)
-                currentBuyRecord["success_rate"] = success_rate
-            currentBuyRecord = {"integral_point_buy": 0, "kill": 0, "notkill": 0, "success_rate": 0.0}
+                # 计算整点频率和整点中秒杀频率
+                if buy_count != 0:
+                    currentBuyRecord["ipb_rate"] = round(currentBuyRecord["integral_point_buy"] / buy_count, 3)
+                if currentBuyRecord["integral_point_buy"] != 0:
+                    currentBuyRecord["kill_rate"] = round(kill / currentBuyRecord["integral_point_buy"], 3)
+            buy_count = 0
+            kill = 0
+            currentBuyRecord = {"integral_point_buy": 0, "ipb_rate": 0.0, "kill_rate": 0.0}
             currentUserId = row["requestBody"]["userId"]
             # 保存当前用户的记录
             userRecords[currentUserId] = currentBuyRecord
         if isAroundIntegralPoint(row["date"]):
             currentBuyRecord["integral_point_buy"] += 1
             if row["requestBody"]["isSecondKill"] == "1":
-                currentBuyRecord["kill"] += 1
-            else:
-                currentBuyRecord["notkill"] += 1
+                kill += 1
+        buy_count += 1
 
 
 def siftRecord(line):
-    if line['integral_point_buy'] >= 5:
+    if line['integral_point_buy'] >= 5 and line['ipb_rate'] >= 0.8 and line['kill_rate'] > 0.9:
         return True
     return False
 
 
 def get_order_grab_robots(data):
-    data = data.sort_values(by=['integral_point_buy', 'success_rate'], ascending=[False, False])
+    data = data.sort_values(by=['integral_point_buy', 'ipb_rate', 'kill_rate'], ascending=[False, False, False])
     result = data[data.apply(siftRecord, axis=1)]
     result.to_csv('./data/result/order_grab_robots.csv')
     print("Done")

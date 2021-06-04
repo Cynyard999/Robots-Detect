@@ -112,7 +112,63 @@ crawler_list.to_csv("./data/result/crawler_robots.csv")
 
 ### 抢单机器人
 
-只在靠近整点并整点过后的时候购买的userid
+#### 特征
+
+只在靠近整点并整点过后的时候购买的userId
+
+对于整点抢购行为，秒杀的成功率异常偏高的userId
+
+#### 过程
+
+通过aggregate函数将数据库的数据按照userID排序以便于分用户遍历，并返回可以遍历的游标。
+
+遍历游标得到每个用户的筛选后的购买行为统计，存为userRecords字典，并保存为中间文件
+
+```python
+with mongo_collection.aggregate(pipeline, allowDiskUse=True
+                               ) as cursor:
+    iterateCursor(cursor)
+    cursor.close()
+    data = pd.DataFrame(userRecords).T
+    data.to_csv('./data/temp/user_buy_records.csv')
+```
+
+【定义】在整点前后1min之内的购买行为被认为是整点操作
+
+```python
+def isAroundIntegralPoint(time: str):
+    minute = datetime.datetime.strptime(time, ISOTIMEFORMAT).minute
+    # second = datetime.datetime.strptime(time, ISOTIMEFORMAT).second
+    # 考虑整点范围两分钟内作为整点整的依据:xx:59:00~xx:00:59
+    if minute >= 59 or minute < 1:
+        return True
+    return False
+```
+
+中间文件格式说明
+
+- integral_point_buy：整点购买行为
+- ipb_rate：整点购买行为占所有购买行为比例
+- kill_rate：整点行为中秒杀商品的比率
+
+筛选数据，设置抢单机器人的行为阈值：整点购买行为多于5次，ipb_rate>0.8，kill_rate>0.9
+
+```python
+def siftRecord(line):
+    if line['integral_point_buy'] >= 5 
+    		and line['ipb_rate'] >= 0.8 
+        	and line['kill_rate'] > 0.9:
+        return True
+    return False
+```
+
+将结果排序后存为csv
+
+```python
+data = data.sort_values(by=['integral_point_buy', 'ipb_rate', 'kill_rate'], ascending=[False, False, False])
+result = data[data.apply(siftRecord, axis=1)]
+result.to_csv('./data/result/order_grab_robots.csv')
+```
 
 ### 撞库机器人
 
