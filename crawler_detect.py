@@ -34,15 +34,7 @@ def iterateCursor(_cursor):
             continue
         if row["requestBody"]["userId"] != currentUserId:
             res = handleUserRecords(currentUserRecords)
-            # print(currentUserId, res)
             user_get_detail_frequency[currentUserId] = {'max_get_detail_per_min': res}
-            # 最小堆得到最大的10个元素
-            if len(heap) < 10:
-                heapq.heappush(heap, res)
-            else:
-                # 压入 然后弹出最小的元素
-                heapq.heappushpop(heap, res)
-            # refresh
             currentUserRecords = [row]
             currentUserId = row["requestBody"]["userId"]
         else:
@@ -52,9 +44,7 @@ def iterateCursor(_cursor):
 def handleUserRecords(userGetDetailRecords):
     if not userGetDetailRecords:
         return
-
     maxFrequency = -1
-
     # 窗口内的最大时间差是否为规定时间间隔 True：是 False：否
     def isValid(window):
         firstRecord = window[0]
@@ -62,7 +52,6 @@ def handleUserRecords(userGetDetailRecords):
         if computeTimeDifference(firstRecord["date"], lastRecord["date"]) > TIME_INTERVAL:
             return False
         return True
-
     left, right = 0, 0
     win = []
     # 滑动窗口
@@ -73,7 +62,6 @@ def handleUserRecords(userGetDetailRecords):
             win.pop(0)
             left += 1
         maxFrequency = maxFrequency if maxFrequency > len(win) else len(win)
-
     return maxFrequency
 
 

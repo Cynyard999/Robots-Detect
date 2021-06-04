@@ -14,7 +14,7 @@ mongo_collection = mongo_db[MONGO_DB_COLLECTION]
 
 fileIndex = 0
 
-while fileIndex <= 0:
+while fileIndex <= 81:
     # json_file = open("./data/log-{0}.json".format(fileIndex), "w")
     with open("./data/log-{0}.txt".format(fileIndex), "r") as text_file:
         # print("load /data/log-{0}.txt".format(fileIndex))

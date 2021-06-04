@@ -1,64 +1,191 @@
 # 恶意机器人判定
 
-## 机器人分类
+## 前期配置
 
-### 爬虫机器人
+### 数据接收过程
 
-同一个userID，短时间内，对于很多个商品进行getDetail，但是buy的行为很少，或者没有（爬取站点信息）
+### 数据库配置
 
-同一个userID，只有getDetail操作，并且非常频繁（增加站点负载）
+基于不同类型的数据有不同key-value对，通过**text2json2mongo.py**文件，我们选择将数据存入MongoDb数据库中，基于数据库和电脑性能的考虑，我们从8100w数据中选取100w数据进行分析，数据格式见文末
 
-活跃时间集中，login时间集中？
+## 机器人
 
 ### 刷单机器人
 
-同一个用户大量购买一个商品
+#### 特征
 
-getDetail时间和下单时间相距很短，并且没有收藏操作？
+同一个用户大量购买商品，并且除了buy之外的行为都很少，或者没有
 
-相同id，多个用户大量购买一个商品？但是刷单是没有id的
+#### 识别过程
 
-![image-20210526105210194](/Users/cynyard/Library/Application Support/typora-user-images/image-20210526105210194.png)
+通过aggregate函数将数据库的数据按照userID排序以便于分用户遍历，并返回可以遍历的游标。
+
+遍历游标得到每个用户的行为统计，存为userRecords字典，并保存为中间文件
+
+```python
+with mongo_collection.aggregate(pipeline, allowDiskUse=True
+                               ) as cursor:
+  iterateCursor(cursor)
+  cursor.close()
+  data = pd.DataFrame(userRecords).T
+  data.to_csv('./data/temp/user_records.csv')
+```
+
+筛选数据，设置刷单机器人的行为阈值
+
+```python
+result = data[data.apply(siftRecord, axis=1)]
+def siftRecord(line):
+    if line['buy'] >= 20 and line['cart'] + line['favor'] + line['getDetail'] < 3:
+        return True
+    return False
+```
+
+### 爬虫机器人
+
+#### 特征
+
+同一个userID，短时间内，对于很多个商品进行getDetail，但是其他行为例如添加购物车，收藏等数量很少，或者没有。
+
+#### 识别过程
+
+通过aggregate函数将数据库的数据按照userID排序以便于分用户遍历，并返回可以遍历的游标。
+
+```python
+with mongo_collection.aggregate(pipeline, allowDiskUse=True
+                               ) as cursor:
+  print("Reading MongoDb...")
+  iterateCursor(cursor)
+  print("Reading Succeed")
+  cursor.close()
+```
+
+遍历游标，并通过滑动窗口的方式得到每个用户在这段时间内的每一分钟的最大getDetail数量，通过字典存取，依赖hash原理可以更快获得数据。
+
+```python
+# 滑动窗口
+def isValid(window):
+        firstRecord = window[0]
+        lastRecord = window[-1]
+        if computeTimeDifference(firstRecord["date"], lastRecord["date"]) > TIME_INTERVAL:
+            return False
+        return True
+left, right = 0, 0
+    win = []
+    # 滑动窗口
+    while right < len(userGetDetailRecords):
+        win.append(userGetDetailRecords[right])
+        right += 1
+        while not isValid(win):
+            win.pop(0)
+            left += 1
+        maxFrequency = maxFrequency if maxFrequency > len(win) else len(win)
+    return maxFrequency
+```
+
+将所有用户的字典记录转化为Pandas的DataFrame，并存为中间文件，再利用DataFrame进行进一步的筛选
+
+```python
+# 使用四分位法得到显著异常的用户频率
+q1, q3 = data['max_get_detail_per_min'].quantile([0.25, 0.75])
+    iqr = q3 - q1
+    suspicious_list = data[
+        (data['max_get_detail_per_min'] > q3 + iqr * 3) | (data['max_get_detail_per_min'] < q1 - iqr * 3)]
+# 通过与刷单机器人得到的用户行为记录做比较，筛选出满足特征的用户，设定userFrequency阈值为100
+def siftCrawler(line, user_records):
+    user_id = line.name
+    # loc[[user_id,...]]返回dataframe再取值需要加values(?)，loc[user_id]返回series
+    user_record = user_records.loc[int(user_id)]
+    if user_record["cart"] == 0 and user_record["favor"] == 0 and user_record["buy"] == 0 and user_record[
+        "getDetail"] > 100:
+        return True
+    return False
+
+```
+
+结果存储为csv文件
+
+```python
+crawler_list = suspicious_list[suspicious_list.apply(siftCrawler, axis=1, user_records=user_records)]
+crawler_list.to_csv("./data/result/crawler_robots.csv")
+```
 
 ### 抢单机器人
 
 只在靠近整点并整点过后的时候购买的userid
 
-（并且在之前没有任何操作）
-
 ### 撞库机器人
 
-#### 相同ip多次请求
+#### 特征
 
-https://patents.google.com/patent/CN104811449A/zh
+同一个ip进行大量的不同账号的登陆操作，并且失败次数远大于成功次数
 
-接收用户的网络访问请求并解析，以确定其源IP、目的IP、登陆属性信息及用户信息；
+同一个账号在同一个ip下进行大量的登陆操作，并且失败次数远大于成功次数，并且没有其他行为例如添加购物车等
 
-配置预设登陆路径和登陆次数阈值，或系统默认内置识别登陆路径的预设格式和登陆次数阈值；
+#### 过程
 
-根据目的IP和登陆属性信息、预设登陆路径或登陆路径的预设格式识别是否进行登陆操作，若是，则记录其源IP、目的IP及用户信息；
+对同一个user，记录登陆成功和登陆失败的ip字典为userRecords
 
-统计预设时间内同一目的IP的服务器接收到的源IP相同而**用户信息不同**的登陆次数，判断登陆次数是否达到登陆次数阈值，若是，则认定其为撞库攻击行为；若否，则认定其为正常访问行为
+对同一个ip，记录登陆成功和登陆失败的user字典为loginRecords
 
-https://patents.google.com/patent/CN107347052A/zh
+```python
+with mongo_collection.aggregate(pipeline1, allowDiskUse=True
+                               ) as cursor:
+  iterateUserCursor(cursor)
+  cursor.close()
+with mongo_collection.aggregate(pipeline2, allowDiskUse=True
+                                 ) as cursor:
+  iterateIpCursor(cursor)
+  cursor.close()
+```
 
-获取预定时间内接收到的登录请求的源IP地址和登录信息；
+转化为DataFrame并存入中间文件，并对DataFrome进行筛选
 
-根据获取到的源IP地址和登录信息，确定所述获取到的源IP地址中具有高频登录行为的源IP地址；
+```python
+data1 = pd.DataFrame(userRecords).T
+data2 = pd.DataFrame(loginRecords).T
+...
+data1 = data1[data1.apply(siftUser, axis=1, data2=data2)]
+def siftUser(line, data2):
+    # 规定失败次数小于等于5或者成功次数大于1，都是正常行为
+    if line['fail_count'] <= 5 or line['succeed_count'] > 1:
+        return False
+    # 当这个ip一次也没成功的时候
+    if line['succeed_count'] == 0:
+        fail_ip_list = line['fail_ip_list']
+        # 始终只有一个ip在尝试登陆，并且一直失败：撞库失败
+        if len(list(set(fail_ip_list))) == 1:
+            ip_record_line = data2.loc[[fail_ip_list[0]]]
+            # values[0]是从series中取得值
+            succeed_ip_record = ip_record_line['succeed_user_list'].values[0]
+            fail_ip_record = ip_record_line['fail_user_list'].values[0]
+            # 并且这个ip成功登陆了三个及以上的user或者登陆失败了三个及以上的user
+            if len(list(set(succeed_ip_record))) > 2 or len(list(set(fail_ip_record))) > 2:
+                return True
+    # 当这个ip最终撞库成功了
+    if line['succeed_count'] == 1:
+        fail_ip_list = line['fail_ip_list']
+        succeed_ip_list = line['succeed_ip_list']
+        # 始终只有一个ip在尝试登陆，并且只成功了一次：撞库成功
+        if len(list(set(fail_ip_list))) == 1 and len(list(set(succeed_ip_list))) == 1 and fail_ip_list[0] == \
+                succeed_ip_list[0]:
+            ip_record_line = data2.loc[fail_ip_list[0]]
+            succeed_ip_record = ip_record_line['succeed_user_list']
+            fail_ip_record = ip_record_line['fail_user_list']
+            # 并且这个ip成功登陆了三个及以上的user或者登陆失败了三个及以上的user
+            if len(list(set(succeed_ip_record))) > 2 or len(list(set(fail_ip_record))) > 2:
+                return True
+    return False
+```
 
-根据所述具有高频登录行为的源IP地址发起的登录请求所使用的密码中具有语义的密码的占比，判断所述源IP地址在所述预定时间内发起的登录请求是否为撞库攻击，其中，所述具有语义的密码为具有语义的概率超过预定概率阈值的密码
+将结果存为csv
 
-#### 一个账号一段时间多次密码
+```python
+result.to_csv('./data/result/credential_stuff_robots.csv')
+print("Done")
+```
 
-https://dun.163.com/news/p/b8e5e68e4b2c4a25946446655e8663d6
-
-#### 一个账号异地登陆（换ip登陆）
-
-
-
-
-
-
+## 数据库格式
 
 ```
 {
