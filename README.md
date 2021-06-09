@@ -34,7 +34,9 @@ with mongo_collection.aggregate(pipeline, allowDiskUse=True
 ```python
 result = data[data.apply(siftRecord, axis=1)]
 def siftRecord(line):
-    if line['buy'] >= 20 and line['cart'] + line['favor'] + line['getDetail'] < 3:
+    if line['cart'] + line['favor'] + line['getDetail'] + line['login'] < 3 and line['buy'] > 10:
+        return True
+    if line['cart'] + line['favor'] + line['getDetail'] + line['login'] < 1 and 10 >= line['buy'] > 5:
         return True
     return False
 ```
@@ -85,16 +87,15 @@ left, right = 0, 0
 
 ```python
 # 使用四分位法得到显著异常的用户频率
-q1, q3 = data['max_get_detail_per_min'].quantile([0.25, 0.75])
+q1, q3 = data['max_get_detail_per_min'].quantile([0.05, 0.95])
     iqr = q3 - q1
     suspicious_list = data[
-        (data['max_get_detail_per_min'] > q3 + iqr * 3) | (data['max_get_detail_per_min'] < q1 - iqr * 3)]
+        (data['max_get_detail_per_min'] > q3 + iqr * 3)]
 # 通过与刷单机器人得到的用户行为记录做比较，筛选出满足特征的用户，设定userFrequency阈值为100
 def siftCrawler(line, user_records):
     user_id = line.name
-    # loc[[user_id,...]]返回dataframe再取值需要加values(?)，loc[user_id]返回series
     user_record = user_records.loc[int(user_id)]
-    if user_record["cart"] == 0 and user_record["favor"] == 0 and user_record["buy"] == 0 and user_record[
+    if user_record["cart"] + user_record["favor"] + user_record["buy"] <= 3 and user_record[
         "getDetail"] > 100:
         return True
     return False

@@ -32,7 +32,7 @@ def iterateCursor(_cursor):
 def siftRecord(line):
     if line['cart'] + line['favor'] + line['getDetail'] + line['login'] < 3 and line['buy'] > 10:
         return True
-    if line['cart'] + line['favor'] + line['getDetail'] + line['login'] < 1 and line['buy'] <= 10 and line['buy'] > 5:
+    if line['cart'] + line['favor'] + line['getDetail'] + line['login'] < 1 and 10 >= line['buy'] > 5:
         return True
     return False
 
