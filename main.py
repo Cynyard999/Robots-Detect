@@ -1,6 +1,4 @@
 import pymongo
-import pandas as pd
-from pandas import DataFrame
 
 import crawler_detect
 import click_farm_detect
@@ -9,6 +7,7 @@ import credential_stuff_detect
 
 MONGO_URL = "mongodb://localhost:27017/"
 MONGO_DB_NAME = "user_logs"
+# MONGO_DB_COLLECTION = "flow_data"
 MONGO_DB_COLLECTION = "samples"
 
 mongo_client = pymongo.MongoClient(MONGO_URL)

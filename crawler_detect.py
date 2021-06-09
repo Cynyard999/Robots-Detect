@@ -76,7 +76,6 @@ def siftCrawler(line, user_records):
 
 
 def get_crawler(data):
-    user_records = ''
     try:
         user_records = pd.read_csv('data/temp/user_records.csv', index_col=0)
     except:
@@ -85,7 +84,7 @@ def get_crawler(data):
     q1, q3 = data['max_get_detail_per_min'].quantile([0.25, 0.75])
     iqr = q3 - q1
     suspicious_list = data[
-        (data['max_get_detail_per_min'] > q3 + iqr * 3) | (data['max_get_detail_per_min'] < q1 - iqr * 3)]
+        (data['max_get_detail_per_min'] > q3 + iqr * 3)]
     suspicious_list.to_csv('./data/temp/suspicious_crawler.csv')
     crawler_list = suspicious_list[suspicious_list.apply(siftCrawler, axis=1, user_records=user_records)]
     crawler_list.to_csv("./data/result/crawler_robots.csv")

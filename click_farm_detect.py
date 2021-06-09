@@ -30,13 +30,19 @@ def iterateCursor(_cursor):
 
 
 def siftRecord(line):
-    if line['buy'] >= 20 and line['cart'] + line['favor'] + line['getDetail'] < 3:
+    if line['cart'] + line['favor'] + line['getDetail'] + line['login'] < 3 and line['buy'] > 10:
+        return True
+    if line['cart'] + line['favor'] + line['getDetail'] + line['login'] < 1 and line['buy'] <= 10 and line['buy'] > 5:
         return True
     return False
 
 
 def get_robot_list(data):
-    data = data.sort_values(by=['buy', 'cart'], ascending=[False, True])
+    q1, q3 = data['buy'].quantile([0.05, 0.95])
+    iqr = q3 - q1
+    suspicious_list = data[
+        (data['buy'] > q3 + iqr * 3)]
+    data = suspicious_list.sort_values(by=['buy', 'cart'], ascending=[False, True])
     result = data[data.apply(siftRecord, axis=1)]
     result.to_csv('./data/result/click_farm_robots.csv')
     print("Done")
@@ -54,4 +60,5 @@ def start(mongo_collection):
     data = pd.DataFrame(userRecords).T
     print("Saving to Csv...")
     data.to_csv('./data/temp/user_records.csv')
+    # data = pd.read_csv('./data/temp/user_records.csv', index_col=0)
     get_robot_list(data)
