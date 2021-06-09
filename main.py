@@ -17,15 +17,15 @@ mongo_db = mongo_client[MONGO_DB_NAME]
 mongo_collection = mongo_db[MONGO_DB_COLLECTION]
 
 if __name__ == "__main__":
-    # 刷单机器人
-    print("Beginning Click-Farm Detect")
-    click_farm_detect.start(mongo_collection)
-    # 撞库机器人
-    print("Beginning Credential_Stuff Detect")
-    credential_stuff_detect.start(mongo_collection)
+    # # 刷单机器人
+    # print("Beginning Click-Farm Detect")
+    # click_farm_detect.start(mongo_collection)
+    # # 撞库机器人
+    # print("Beginning Credential_Stuff Detect")
+    # credential_stuff_detect.start(mongo_collection)
     # 爬虫机器人
-    print("Beginning Credential_Stuff Detect")
+    print("Beginning Crawler Detect")
     crawler_detect.start(mongo_collection)
     # 抢单机器人
-    print("Beginning Order_Grab Detect")
-    order_grab_detect.start(mongo_collection)
+    # print("Beginning Order_Grab Detect")
+    # order_grab_detect.start(mongo_collection)

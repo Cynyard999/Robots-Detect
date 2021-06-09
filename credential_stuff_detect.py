@@ -86,6 +86,7 @@ def get_credential_stuffing_robots(data1, data2):
     data1 = data1[data1.apply(siftUser, axis=1, data2=data2)]
     # 取得user-ip对应
     result = data1[["fail_ip_list"]].apply(lambda x: x['fail_ip_list'][0], axis=1)
+    result.rename('ip',inplace=True)
     # 这里的result是series类型
     result.to_csv('./data/result/credential_stuff_robots.csv')
     print("Done")

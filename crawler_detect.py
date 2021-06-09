@@ -45,6 +45,7 @@ def handleUserRecords(userGetDetailRecords):
     if not userGetDetailRecords:
         return
     maxFrequency = -1
+
     # 窗口内的最大时间差是否为规定时间间隔 True：是 False：否
     def isValid(window):
         firstRecord = window[0]
@@ -52,6 +53,7 @@ def handleUserRecords(userGetDetailRecords):
         if computeTimeDifference(firstRecord["date"], lastRecord["date"]) > TIME_INTERVAL:
             return False
         return True
+
     left, right = 0, 0
     win = []
     # 滑动窗口
@@ -69,7 +71,7 @@ def siftCrawler(line, user_records):
     user_id = line.name
     # loc[[user_id,...]]返回dataframe再取值需要加values(?)，loc[user_id]返回series
     user_record = user_records.loc[int(user_id)]
-    if user_record["cart"] == 0 and user_record["favor"] == 0 and user_record["buy"] == 0 and user_record[
+    if user_record["cart"] + user_record["favor"] + user_record["buy"] <= 3 and user_record[
         "getDetail"] > 100:
         return True
     return False
